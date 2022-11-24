@@ -123,6 +123,44 @@ SCIP_DECL_HEUREXITSOL(heurExitsolGulosa)
 }
 
 
+// VARIAVEIS QUE VIRARAM GLOBAIS PRA FACILITAR NOSSAS VIDAS.
+instanceT* I;
+int* covered;
+// FUNCAO DE COMPARACAO PARA QSORT
+int cmpfunc (const void * a, const void * b) 
+{
+    const int A = *(int*)a;       // conteudo do cast para int* de a
+    const int B = *(int*)b;      // conteudo do cast para int* de b
+    int m = I->m;               // numero de elementos
+    int aValue = 0, bValue = 0;// valor acumulado da soma de todos os elementos (não cobertos) nos conjuntos A e B
+    
+    int i;
+
+    for(i=0;i<m;i++)
+    {
+        if(I->R[A][i] && !covered[i]){ // se elemento i esta no conjunto do item "A" e ainda nao foi coberto
+          aValue += I->weight[i];
+        }
+
+        if(I->R[B][i] && !covered[i]){ // se elemento i esta no conjunto do item "B" e ainda nao foi coberto
+          bValue += I->weight[i];
+        }
+    }
+
+    int aCost = I->item[A].value;
+    int bCost = I->item[B].value;
+
+    float aRatio = (float)aValue/(float)aCost;
+    float bRatio = (float)bValue/(float)bCost;
+
+    int output = aRatio <= bRatio ? 1 : -1;
+    // SE A <= B ---> retorna 1
+    // SE A > B ---> retorna -1
+    // isso é pra ordenar em orderm DECRESCENTE.
+    // (maior razão entre valor/custo fica no começo)
+    return output; 
+}
+
 /**
  * @brief Core of the gulosa heuristic: it builds one solution for the problem by gulosa procedure.
  *
@@ -136,13 +174,12 @@ int gulosa(SCIP* scip, SCIP_SOL** sol, SCIP_HEUR* heur)
    int found, infeasible, nInSolution;
    unsigned int stored;
    int nvars;
-   int *covered, n, custo, nCovered, *cand, nCands, selected;
+   int n, custo, nCovered, *cand, nCands, selected;
    SCIP_VAR *var, **solution, **varlist;
    //  SCIP* scip_cp;
    SCIP_Real valor, bestUb;
    SCIP_PROBDATA* probdata;
    int i, residual, j, peso, m;
-   instanceT* I;
    
    found = 0;
    infeasible = 0;
@@ -212,8 +249,17 @@ int gulosa(SCIP* scip, SCIP_SOL** sol, SCIP_HEUR* heur)
         }
       }
    }
+   //
    // complete solution using items not fixed (not covered)
    for(i=0;i<nCands && !infeasible && residual>0;i++){
+
+      // quick sort para escolha gulosa 
+      qsort(              // PARAMETROS
+        cand + i,        // array de candidatos, com o offset "+ i" para ignorar elementos já escolhidos, ou inviáveis.
+        nCands - i,     // quantidade de candidatos restantes.
+        sizeof(int),   // tipo de dado salvo em cand
+        cmpfunc       // função de comparação, declarada na linha 130
+      );
       selected = cand[i]; // selected next candidate (in sequencial order)
      // only select actived var in scip and whose gulosa up is valid for the problem
       peso = 0;

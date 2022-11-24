@@ -26,6 +26,8 @@
 #include "parameters_mochila.h"
 #include "heur_aleatoria.h"
 #include "heur_problem.h"
+#include <time.h>
+#include <stdlib.h>
 
 //#define DEBUG_ALEATORIA 1
 /* configuracao da heuristica */
@@ -211,6 +213,21 @@ int aleatoria(SCIP* scip, SCIP_SOL** sol, SCIP_HEUR* heur)
           }
         }
       }
+   }
+
+   srand(time(NULL));
+   int r;
+   int buffer;
+   int randomIndex = nCands;
+
+   while(randomIndex--){
+
+      r = rand() % (randomIndex + 1);
+     
+      // swaps cand[r] and cand[randomIndex];
+      buffer = cand[r];
+      cand[r] = cand[randomIndex];
+      cand[randomIndex] = buffer;
    }
    // complete solution using items not fixed (not covered)
    for(i=0;i<n && !infeasible && nCands > 0 && residual>0;i++){
