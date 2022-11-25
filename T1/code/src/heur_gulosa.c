@@ -150,8 +150,8 @@ int cmpfunc (const void * a, const void * b)
     int aCost = I->item[A].value;
     int bCost = I->item[B].value;
 
-    float aRatio = (float)aValue/(float)aCost;
-    float bRatio = (float)bValue/(float)bCost;
+    float aRatio = (float)aCost/(float)aValue;
+    float bRatio = (float)bCost/(float)bValue;
 
     int output = aRatio <= bRatio ? 1 : -1;
     // SE A <= B ---> retorna 1
