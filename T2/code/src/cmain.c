@@ -530,18 +530,11 @@ double heuristica_LNS(instanceT I, double *x, double z, int tempo, double porcDe
   // Verifica quais itens foram selecionados e atualiza capacidade residual
   totalSelecionados = 0;
   for(i=0;i<I.n;i++){
-    if(x[i] > EPSILON)
-    {
-
-      for(j = 0 ; j < I.m; j++)
-        if(I.R[i][j]) contador[j]++;
-      
+    if(x[i] > EPSILON){
+      capacRes -= I.item[i].weight;
       totalSelecionados++;
     }
   }
-
-  for(j = 0 ; j < I.m; j++)
-      if(contador[j]) capacRes -= I.weight[j];
 
   // Decide quem sairá da solução com base no peso de cada item
   perda = 0;
@@ -550,27 +543,12 @@ double heuristica_LNS(instanceT I, double *x, double z, int tempo, double porcDe
 
   for(i=0;i<I.n;i++){
     if(x[i]>EPSILON){
-      sair[nSair++].label = i;
+      sair[nSair].label = i;
+      sair[nSair++].value = -(I.item[i].weight);
     }
   }
   
-  //qsort(sair, nSair, sizeof(itemType), comparador); // Ordena o vetor com base no peso dos itens selecionados
-  // bora ordenar aleatorio kk
-  srand(time(NULL));
-  int randomIndex = nSair;
-  int r;
-  itemType buffer;
-
-  while(randomIndex--){
-
-      r = rand() % (randomIndex + 1);
-     
-      // swaps cand[r] and cand[randomIndex];
-      buffer = sair[r];
-      sair[r] = sair[randomIndex];
-      sair[randomIndex] = buffer;
-   }
-
+  qsort(sair, nSair, sizeof(itemType), comparador); // Ordena o vetor com base no peso dos itens selecionados
   saiu= nSair*(porcDestroy/100.0); // Destroi parte da solução
   PRINTF("\nporcDestroy=%lf saiu=%d nSair=%d\n", porcDestroy, saiu, nSair);
   for(i=0;i<saiu;i++){
