@@ -295,9 +295,48 @@ double otimiza_PLI(instanceT I, int tipo, double *x, parametersT param, double* 
 }
 
 
+instanceT* instance;
+int *contador;
+int meucomparador(const void *aItem, const void *bItem)
+{
+  int aValue = *(itemType*)aItem.value;
+  int bValue = *(itemType*)bItem.value;
+
+  int a = *(itemType*)aItem.label;
+  int b = *(itemType*)bItem.label;
+
+  float aWeight = 0, bWeight = 0;
+  for(j = 0 ; j < i.m; j++){
+    float halfWeight = (Instance->weight[j] * 0.5f);
+
+    if(Instance->R[a][j])
+      aWeight += halfWeight + halfWeight/contador[j];
+
+    if(Instance->R[b][j])
+      bWeight += halfWeight + halfWeight/contador[j];
+  }
+
+  float aRatio = aValue/aWeight;
+  float bRatio = bValue/bWeight;
+
+  if (aRatio > bRatio)
+  {
+    return 1;
+  }
+  else if (aRatio == bRatio)
+  {
+    return 0;
+  }
+  else
+  {
+    return -1;
+  }
+}
 /*
  tam: percentual do total de itens. Valor entre (0,1).
  */
+
+
 int heuristica_relax_fix(instanceT I, double* x, float percentualTam, int tempo, double *aux)
 {
   SCIP* scip;
@@ -328,21 +367,46 @@ int heuristica_relax_fix(instanceT I, double* x, float percentualTam, int tempo,
   // aloca candidatos
   cand = (itemType*)malloc(sizeof(itemType)*I.n);
   fixed = (int*)calloc(I.n, sizeof(int)); // fixed[i]=0, if item i is not fixed, fixed[i]=1 if item i is fixed in 1.0, fixed[i]=-1 if item i is fixed in 0.
+  contador = (int*)calloc(I.m, sizeof(int));
 
   // inicializa lista de candidatos
   nCand = 0;
   for(i=0;i<I.n;i++){
+
+    for(j = 0 ; j < i.m; j++){
+        if(I.R[i][j]) contador[j]++;
+    }
+  
+
     cand[nCand].label = I.item[i].label;
     cand[nCand++].value = I.item[i].value;
   }
 
-  qsort(cand, nCand, sizeof(itemType), comparador);
-
+  instance = &I;
+  qsort(cand, nCand, sizeof(itemType), meucomparador);
+  free(contador);
   // define tamanho de cada parte da particao
   tam = ceill(percentualTam * I.n);
   K = ceill(1/percentualTam);
   // aloca vetor das particoes
   particao = (int*)malloc(sizeof(int)*(I.n));
+
+  parte = 0;
+  int lo = 0;
+  int hi = I.n - 1;
+  for(i = 1; i <= I.n; i++){
+
+    if(i % 2 == 0){
+      particao[cand[lo++].label] = parte; 
+    }
+    else{
+      particao[cand[hi--].label] = parte; 
+    }
+    
+    if(i % K == 0) parte++;
+  }
+
+  /*
   for(parte=0;parte<K;parte++){
      for(i=0;i<tam && nCand>0;i++){
         k = RandomInteger(0,nCand-1); // sorteia um candidato
@@ -350,7 +414,7 @@ int heuristica_relax_fix(instanceT I, double* x, float percentualTam, int tempo,
         // remove candidato
         cand[k] = cand[--nCand];
      }
-  }
+  }*/
 
 #ifdef DEBUG
   for(i=0;i<I.n;i++){
@@ -512,17 +576,13 @@ double heuristica_LNS(instanceT I, double *x, double z, int tempo, double porcDe
   parametersT param;
   
   itemType *sair;
-  int* contador;
   int capacRes, nSair;
   double valor;
-  int i, ii, saiu, totalSaiu, totalSelecionados, j;
+  int i, ii, saiu, totalSaiu, totalSelecionados;
   double zz, perda, vv;
 
   // aloca candidatos a sair da solução inicial
   sair = (itemType*)malloc(sizeof(itemType)*I.n);
-  contador  = (int*)malloc(sizeof(int)*I.m);
-
-  for(i =0; i < I.m;i++) contador = 0;
 
   // inicializa capacidade residual da mochila
   capacRes = I.C;
@@ -553,11 +613,7 @@ double heuristica_LNS(instanceT I, double *x, double z, int tempo, double porcDe
   PRINTF("\nporcDestroy=%lf saiu=%d nSair=%d\n", porcDestroy, saiu, nSair);
   for(i=0;i<saiu;i++){
     ii = sair[i].label;
-    for(j = 0 ; j < I.m; j++)
-    {
-        if(I.R[ii][j] ) contador[j]--;
-        if(contador[j] == 0) capacRes += I.weight[j];
-    }
+    capacRes += I.item[ii].weight;
     perda += I.item[ii].value;
     PRINTF("\nRemove %d (peso=%d valor=%d) da mochila (capac residual=%d)", ii, I.item[ii].weight, I.item[ii].value, capacRes);
     x[ii]=0;
