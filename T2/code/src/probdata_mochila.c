@@ -318,10 +318,10 @@ SCIP_RETCODE SCIPprobdataCreate(
       (void) SCIPsnprintf(name, SCIP_MAXSTRLEN, "y_%d", j);
       /* create a basic variable object */
       if(!relaxed){
-         SCIP_CALL( SCIPcreateVarBasic(scip, &var, name, 0.0, 1.0, (double) I->item[i].value, SCIP_VARTYPE_BINARY) );
+         SCIP_CALL( SCIPcreateVarBasic(scip, &var, name, 0.0, 1.0, 0.0, SCIP_VARTYPE_BINARY) );
       }
       else{
-         SCIP_CALL( SCIPcreateVarBasic(scip, &var, name, 0.0, 1.0, (double) I->item[i].value, SCIP_VARTYPE_CONTINUOUS) );
+         SCIP_CALL( SCIPcreateVarBasic(scip, &var, name, 0.0, 1.0, 0.0, SCIP_VARTYPE_CONTINUOUS) );
       }
       //      SCIP_CALL( SCIPcreateVarBasic(scip, &var, name, 0.0, 1.0, 0.0, SCIP_VARTYPE_BINARY) );
       assert(var != NULL);

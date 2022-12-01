@@ -512,13 +512,17 @@ double heuristica_LNS(instanceT I, double *x, double z, int tempo, double porcDe
   parametersT param;
   
   itemType *sair;
+  int* contador;
   int capacRes, nSair;
   double valor;
-  int i, ii, saiu, totalSaiu, totalSelecionados;
+  int i, ii, saiu, totalSaiu, totalSelecionados, j;
   double zz, perda, vv;
 
   // aloca candidatos a sair da solução inicial
   sair = (itemType*)malloc(sizeof(itemType)*I.n);
+  contador  = (int*)malloc(sizeof(int)*I.m);
+
+  for(i =0; i < I.m;i++) contador = 0;
 
   // inicializa capacidade residual da mochila
   capacRes = I.C;
@@ -526,11 +530,18 @@ double heuristica_LNS(instanceT I, double *x, double z, int tempo, double porcDe
   // Verifica quais itens foram selecionados e atualiza capacidade residual
   totalSelecionados = 0;
   for(i=0;i<I.n;i++){
-    if(x[i] > EPSILON){
-      capacRes -= I.item[i].weight;
+    if(x[i] > EPSILON)
+    {
+
+      for(j = 0 ; j < I.m; j++)
+        if(I.R[i][j]) contador[j]++;
+      
       totalSelecionados++;
     }
   }
+
+  for(j = 0 ; j < I.m; j++)
+      if(contador[j]) capacRes -= I.weight[j];
 
   // Decide quem sairá da solução com base no peso de cada item
   perda = 0;
@@ -539,17 +550,36 @@ double heuristica_LNS(instanceT I, double *x, double z, int tempo, double porcDe
 
   for(i=0;i<I.n;i++){
     if(x[i]>EPSILON){
-      sair[nSair].label = i;
-      sair[nSair++].value = -(I.item[i].weight);
+      sair[nSair++].label = i;
     }
   }
   
-  qsort(sair, nSair, sizeof(itemType), comparador); // Ordena o vetor com base no peso dos itens selecionados
+  //qsort(sair, nSair, sizeof(itemType), comparador); // Ordena o vetor com base no peso dos itens selecionados
+  // bora ordenar aleatorio kk
+  srand(time(NULL));
+  int randomIndex = nSair;
+  int r;
+  itemType buffer;
+
+  while(randomIndex--){
+
+      r = rand() % (randomIndex + 1);
+     
+      // swaps cand[r] and cand[randomIndex];
+      buffer = sair[r];
+      sair[r] = sair[randomIndex];
+      sair[randomIndex] = buffer;
+   }
+
   saiu= nSair*(porcDestroy/100.0); // Destroi parte da solução
   PRINTF("\nporcDestroy=%lf saiu=%d nSair=%d\n", porcDestroy, saiu, nSair);
   for(i=0;i<saiu;i++){
     ii = sair[i].label;
-    capacRes += I.item[ii].weight;
+    for(j = 0 ; j < I.m; j++)
+    {
+        if(I.R[ii][j] ) contador[j]--;
+        if(contador[j] == 0) capacRes += I.weight[j];
+    }
     perda += I.item[ii].value;
     PRINTF("\nRemove %d (peso=%d valor=%d) da mochila (capac residual=%d)", ii, I.item[ii].weight, I.item[ii].value, capacRes);
     x[ii]=0;
